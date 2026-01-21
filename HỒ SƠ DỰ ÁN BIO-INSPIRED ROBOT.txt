@@ -1,0 +1,50 @@
+HỒ SƠ DỰ ÁN: BIO-INSPIRED ROBOT (25 TUẦN)
+1. Tầm nhìn & Triết lý:
+
+Mục tiêu: Robot dẫn đường và hỗ trợ cá nhân (Social Robot).
+
+Triết lý: Bio-inspired (Mô phỏng sinh học). Không dùng Lidar/Encoder chính xác tuyệt đối, mà dùng hành vi, phản xạ và mốc tham chiếu (Landmarks).
+
+Chiến thuật: Hybrid Sense Switching (Chuyển đổi giác quan lai).
+
+Xa/Khuất: Dùng Thính giác (BLE) để tìm hướng.
+
+Gần/Thấy: Dùng Thị giác (Camera) để bám theo/tương tác.
+
+2. Cấu hình Phần cứng (Chốt ngày 31/12/2025):
+
+Bộ não (Main): ESP32-S3 SuperMini (Dual core, nhiều GPIO, xử lý logic FSM).
+
+Thính giác (Tai): 02 x ESP32-C3 SuperMini + Tấm chắn sóng kim loại (Stereo Hearing).
+
+Thị giác (Mắt): HuskyLens (hoặc Smartphone Android cũ).
+
+Tiền đình (Thăng bằng): MPU6050 (Thay thế La bàn & Encoder).
+
+Cơ bắp: Motor DC + Driver (L298N/TB6612).
+
+Nguồn: Pin Li-ion 2S/3S.
+
+3. Kiến trúc Phần mềm (Máy trạng thái - FSM):
+
+State 1 (SEARCHING): Mất dấu chủ -> Quét 2 tai BLE -> So sánh RSSI (Trái - Phải) -> Quay về hướng mạnh hơn.
+
+State 2 (APPROACHING): Di chuyển về nguồn phát. MPU6050 giữ xe đi thẳng.
+
+State 3 (VISUAL LOCK): Camera phát hiện đối tượng -> Ngắt BLE -> Dùng PID Camera để bám theo (Giữ đối tượng ở giữa khung hình).
+
+State 4 (HOMING/MEMORY): Dùng AprilTags làm mốc. Bộ nhớ Topo: "Từ Tag A -> Rẽ phải 90 độ -> Tag B".
+
+4. Lộ trình phát triển (Milestones):
+
+Giai đoạn 1 (Tuần 1-10): "The Faithful Dog"
+
+Mục tiêu: Phản xạ nhanh, chuyển đổi BLE/Camera mượt.
+
+Công nghệ: PID, Deadband, MPU6050 Turning, Stereo RSSI.
+
+Giai đoạn 2 (Tuần 11-25): "The Smart Navigator"
+
+Mục tiêu: Nhớ đường về nhà, né vật cản chủ động.
+
+Công nghệ: Topological Memory (EEPROM), AprilTag Localization, Voronoi Lite (với cảm biến siêu âm).
