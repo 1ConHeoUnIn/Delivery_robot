@@ -177,8 +177,8 @@ class FaceEngine:
             status_text = "CHE DO: BAM THEO MASTER"
             if detected_status == "MASTER":
                 center_x = (x + w/2) / self.target_width
-                if center_x < self.center_min: command = "L"
-                elif center_x > self.center_max: command = "R"
+                if center_x < self.center_min: command = "R"
+                elif center_x > self.center_max: command = "L"
                 else: command = "W"
             else:
                 command = "S"

@@ -5,7 +5,7 @@ from modules.face_engine import FaceEngine
 
 # --- CẤU HÌNH ---
 # 1. Camera IP (Sửa lại theo điện thoại của bạn)
-VIDEO_URL = "http://192.168.2.2:8080/video"
+VIDEO_URL = "http://192.168.137.23:8080/video"
 
 def main():
     print("--- KHOI DONG HE THONG AI ROBOT  ---")
