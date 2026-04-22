@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Mô phỏng Điều khiển P - AGV TDTU</title>
+    <style>
+        body { 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .panel { 
+            background: #1e1e24; 
+            width: 860px; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); 
+            border: 1px solid #333; 
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            margin-bottom: 25px; 
+            border-bottom: 1px solid #333; 
+            padding-bottom: 15px; 
+        }
+        .header h2 { margin: 0; color: #fff; font-size: 22px; }
+        .stats { display: flex; gap: 30px; font-family: monospace; font-size: 14px; }
+        .stat-box { display: flex; flex-direction: column; align-items: flex-end; }
+        .stat-label { color: #888; font-size: 11px; margin-bottom: 3px; font-weight: bold; letter-spacing: 1px;}
+        .stat-value { font-size: 18px; font-weight: bold; color: #fff; }
+        
+        /* Khu vực Track kéo thả */
+        #track { 
+            width: 100%; 
+            height: 90px; 
+            background: #2a2a35; 
+            border-radius: 8px; 
+            position: relative; 
+            cursor: pointer; 
+            border: 1px solid #444; 
+            margin-bottom: 25px; 
+            overflow: hidden; 
+        }
+        #track::before { 
+            content: ''; 
+            position: absolute; 
+            width: 100%; 
+            height: 2px; 
+            background: #555; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            stroke-dasharray: 10; 
+        }
+        
+        /* Mục tiêu (Sếp) */
+        #target { 
+            position: absolute; 
+            width: 2px; 
+            height: 100%; 
+            background: #f87171; 
+            top: 0; 
+            left: 600px; 
+            z-index: 2; 
+            pointer-events: none; 
+        }
+        #target-label { 
+            position: absolute; 
+            top: 5px; 
+            left: -30px; 
+            color: #f87171; 
+            font-size: 11px; 
+            font-weight: bold; 
+            background: rgba(0,0,0,0.7); 
+            padding: 3px 8px; 
+            border-radius: 4px;
+        }
+        
+        /* Xe AGV */
+        #agv { 
+            position: absolute; 
+            width: 60px; 
+            height: 36px; 
+            background: #4da6ff; 
+            top: 27px; 
+            left: 50px; 
+            border-radius: 6px; 
+            z-index: 3; 
+            pointer-events: none; 
+            box-shadow: 0 0 15px rgba(77, 166, 255, 0.4); 
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Bảng điều khiển Slider */
+        .controls { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            background: #25252b;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        input[type=range] { width: 400px; accent-color: #a855f7; cursor: pointer; }
+
+        /* Khung vẽ Biểu đồ */
+        canvas { 
+            background: #1a1a20; 
+            border-radius: 8px; 
+            border: 1px solid #333; 
+            width: 100%; 
+            height: 220px; 
+        }
+        .legend { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 20px; 
+            font-size: 12px; 
+            margin-top: 10px; 
+        }
+        .leg-item span { 
+            display: inline-block; 
+            width: 20px; 
+            height: 3px; 
+            vertical-align: middle; 
+            margin-right: 8px; 
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <div class="header">
+        <h2>Mô phỏng Điều khiển Khâu P - AGV</h2>
+        <div class="stats">
+            <div class="stat-box"><span class="stat-label">SAI SỐ (ERROR)</span><span class="stat-value" id="val-err" style="color: #f1c40f;">0.0 px</span></div>
+            <div class="stat-box"><span class="stat-label">VẬN TỐC TỨC THỜI</span><span class="stat-value" id="val-spd">0.00</span></div>
+            <div class="stat-box"><span class="stat-label">HỆ SỐ Kp</span><span class="stat-value" id="val-kp" style="color: #a855f7;">0.010</span></div>
+        </div>
+    </div>
+
+    <div style="font-size: 12px; color: #888; margin-bottom: 8px; text-align: center;">👇 Click chuột vào thanh ray bên dưới để thay đổi vị trí của Sếp 👇</div>
+    <div id="track">
+        <div id="target"><div id="target-label">VỊ TRÍ SẾP</div></div>
+        <div id="agv">AGV</div>
+    </div>
+
+    <div class="controls">
+        <label style="font-size: 14px; color: #a855f7; font-weight: bold;">Hệ số Kp (Độ nhạy / Lực bơm Ga):</label>
+        <input type="range" id="kp-slider" min="0.005" max="0.15" step="0.001" value="0.01">
+    </div>
+
+    <canvas id="chartCanvas" width="860" height="220"></canvas>
+    
+    <div class="legend">
+        <div class="leg-item"><span style="background: #4da6ff;"></span>Quỹ đạo Robot</div>
+        <div class="leg-item"><span style="background: #f87171;"></span>Vị trí Sếp</div>
+    </div>
+</div>
+
+<script>
+    const track = document.getElementById('track');
+    const targetEl = document.getElementById('target');
+    const agvEl = document.getElementById('agv');
+    const kpSlider = document.getElementById('kp-slider');
+    
+    const canvas = document.getElementById('chartCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const historyData = [];
+    const MAX_POINTS = 300; // Số điểm vẽ trên biểu đồ
+
+    // Biến vật lý cơ bản
+    let x_agv = 50;
+    let v_agv = 0;
+    let x_target = 600;
+    let mass = 1.0;
+    let friction = 0.93; // Quán tính nhẹ để thấy rõ overshoot khi Kp cao
+
+    // Bắt sự kiện Click/Kéo thả chuột trên Track
+    let isDragging = false;
+    track.addEventListener('mousedown', (e) => { isDragging = true; updateTarget(e); });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    track.addEventListener('mousemove', (e) => { if(isDragging) updateTarget(e); });
+
+    function updateTarget(e) {
+        let rect = track.getBoundingClientRect();
+        x_target = e.clientX - rect.left;
+        if(x_target < 0) x_target = 0;
+        if(x_target > rect.width) x_target = rect.width;
+    }
+
+    // Vòng lặp tính toán Vật lý (60 FPS)
+    function loop() {
+        let Kp = parseFloat(kpSlider.value);
+        document.getElementById('val-kp').innerText = Kp.toFixed(3);
+
+        // --- CÔNG THỨC KHÂU P CỐT LÕI ---
+        let error = x_target - (x_agv + 30); // Lấy tâm xe (width=60 -> +30)
+        let force = Kp * error;
+        
+        v_agv += (force / mass);
+        v_agv *= friction; // Ma sát hao hụt
+        x_agv += v_agv;
+
+        // Giới hạn xe không văng khỏi track
+        if(x_agv < 0) { x_agv = 0; v_agv = 0; }
+        if(x_agv > track.offsetWidth - 60) { x_agv = track.offsetWidth - 60; v_agv = 0; }
+
+        // Cập nhật DOM (Giao diện)
+        targetEl.style.left = x_target + 'px';
+        agvEl.style.left = x_agv + 'px';
+        
+        document.getElementById('val-err').innerText = Math.abs(error).toFixed(1) + ' px';
+        document.getElementById('val-spd').innerText = Math.abs(v_agv).toFixed(2);
+
+        // Ghi lại dữ liệu cho Biểu đồ
+        historyData.push({ target: x_target, agv: x_agv + 30 });
+        if(historyData.length > MAX_POINTS) historyData.shift();
+        
+        drawChart();
+        requestAnimationFrame(loop);
+    }
+
+    // Hàm vẽ Biểu đồ Real-time
+    function drawChart() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Vẽ lưới Grid ngang
+        ctx.strokeStyle = '#2c2c35';
+        ctx.lineWidth = 1;
+        for(let i=1; i<5; i++) {
+            ctx.beginPath();
+            let y = i * (canvas.height / 5);
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        if(historyData.length < 2) return;
+
+        let stepX = canvas.width / MAX_POINTS;
+
+        // Vẽ đường Vị trí Sếp (Đỏ)
+        ctx.beginPath();
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 2;
+        for(let i=0; i<historyData.length; i++) {
+            let x = i * stepX;
+            let y = canvas.height - (historyData[i].target / 860 * canvas.height); 
+            if(i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Vẽ đường Quỹ đạo Robot (Xanh)
+        ctx.beginPath();
+        ctx.strokeStyle = '#4da6ff';
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
+        for(let i=0; i<historyData.length; i++) {
+            let x = i * stepX;
+            let y = canvas.height - (historyData[i].agv / 860 * canvas.height);
+            if(i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Khởi động
+    loop();
+</script>
+</body>
+</html>
